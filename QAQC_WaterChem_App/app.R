@@ -18,17 +18,21 @@ library(rsconnect)
 library(plotly)
 library(Cairo);options(shiny.usecairo=TRUE)
 
+hydrolab <- read.csv("assessed_ncca2010_hydrolab.csv")
+siteinfo <- read.csv("assessed_ncca2010_siteinfo.revised.06212016.csv")
+waterchem <- read.csv("assessed_ncca2010_waterchem.csv")
+
 # Define UI for application that draws a histogram
 ui <- fluidPage(theme = shinytheme("lumen"),
                 navbarPage("NARS QAQC App",
                            tabPanel("NCCA", 
                                     sidebarPanel(
-                             selectInput("indicator", "Choose Indicator",
+                             selectInput("indicatorui", "Choose Indicator",
                                          c("Water Chemistry" = "wc")),
-                             selectInput("parameter", "Choose Parameter",
-                                         c("Nitrogen" = "nit",
+                             selectInput("parameterui", "Choose Parameter",
+                                         c("Nitrogen" = "NTL",
                                            "Dissolved Ozygen" = "do")),
-                             selectInput("state", "Choose State",
+                             selectInput("stateui", "Choose State",
                                          c("Alabama" = "al",
                                            "Arizona" = "az",
                                            "Virginia" = "va")),
@@ -40,11 +44,11 @@ ui <- fluidPage(theme = shinytheme("lumen"),
                            mainPanel("GRAPHS",
                                      column(12,
                                             h3("Q-Q Plot"),
-                                            plotlyOutput("nccaqq"),
+                                            plotOutput("nccaqq"),
                                             h3("Histograms"),
-                                            plotlyOutput("nccahist"),
+                                            plotOutput("nccahist"),
                                             h3("Box Plots"),
-                                            plotlyOutput("nccabox")))),
+                                            plotOutput("nccabox")))),
                            tabPanel("NWCA", sidebarPanel(
                              
                            )))
@@ -55,15 +59,15 @@ ui <- fluidPage(theme = shinytheme("lumen"),
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
-   
-   output$distPlot <- renderPlot({
-      # generate bins based on input$bins from ui.R
-      x    <- faithful[, 2] 
-      bins <- seq(min(x), max(x), length.out = input$bins + 1)
-      
-      # draw the histogram with the specified number of bins
-      hist(x, breaks = bins, col = 'darkgray', border = 'white')
-   })
+  
+  output$nccaqq <- renderPlot({
+    filtered <-
+      waterchem %>%
+      filter(PARAMETER == input$parameterui)
+    p <- ggplot(filtered, aes(sample = RESULT)) + stat_qq() 
+    p
+  })
+
 }
 
 # Run the application 
