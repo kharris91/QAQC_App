@@ -31,12 +31,37 @@ ui <- fluidPage(theme = shinytheme("lumen"),
                                          c("Water Chemistry" = "wc")),
                              selectInput("parameterui", "Choose Parameter",
                                          c("Nitrogen" = "NTL",
-                                           "Dissolved Ozygen" = "do",
+                                           "Dissolved Oxygen" = "do",
                                            "Phosphorus" = "PTL")),
                              selectInput("stateui", "Choose State",
-                                         c("Alabama" = "al",
-                                           "Arizona" = "az",
-                                           "Virginia" = "va")),
+                                         c("Alabama" = "AL",
+                                           "California" = "CA",
+                                           "Connecticut" = "CT",
+                                           "Deleware" = "DE",
+                                           "Florida" = "FL",
+                                           "Georgia" = "GA",
+                                           "Illinois" = "IL",
+                                           "Indiana" = "IN",
+                                           "Louisiana" = "LA",
+                                           "Massachusetts" = "MA",
+                                           "Maryland" = "MD",
+                                           "Maine" = "ME",
+                                           "Michigan" = "MI",
+                                           "Minnesota" = "MN",
+                                           "Mississippi" = "MS",
+                                           "North Carolina" = "NC",
+                                           "New Hampshire" = "NH",
+                                           "New Jersey" = "NJ",
+                                           "New York" = "NY",
+                                           "Ohio" = "OH",
+                                           "Oregon" = "OR",
+                                           "Pennsylvania" = "PA",
+                                           "Rhode Island" = "RI",
+                                           "South Carolina" = "SC",
+                                           "Texas" = "TX",
+                                           "Virginia" = "VA",
+                                           "Washington" = "WA",
+                                           "Wisconsin" = "WI")),
                              checkboxGroupInput("graphoptions", "Graph Options:",
                                                 c("Include National" = "incnat",
                                                   "Include Ecoregions" = "increg"))
@@ -64,8 +89,18 @@ server <- function(input, output) {
   output$nccaqq <- renderPlot({
     filtered <-
       waterchem %>%
-      filter(PARAMETER == input$parameterui)
+      filter(PARAMETER == input$parameterui,
+             STATE == input$stateui)
     p <- ggplot(filtered, aes(sample = RESULT)) + stat_qq() 
+    p
+  })
+  
+  output$nccahist <- renderPlot({
+    filtered <- 
+      waterchem %>%
+      filter(PARAMETER == input$parameterui,
+            STATE == input$stateui)
+    p <- ggplot(filtered, aes(x = RESULT)) + geom_histogram(color="black", fill="white")
     p
   })
 
