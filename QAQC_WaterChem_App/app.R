@@ -28,13 +28,13 @@ ui <- fluidPage(theme = shinytheme("lumen"),
                            
                            tabPanel("NCCA 2010 - Estuaries", 
                                     sidebarPanel(
-                                      selectInput("indicatorui_est", "Choose Indicator",
+                                      selectInput("indicatorui_est", "Select Indicator",
                                                   c("Water Chemistry" = "wc")),
-                                      selectInput("parameterui_est", "Choose Parameter",
+                                      selectInput("parameterui_est", "Select Parameter",
                                                   c("Dissolved Inorganic Nitrogen" = "DIN",
                                                     "Phosphate" = "SRP",
                                                     "Chloropyll-A" = "CHLA")),
-                                      selectInput("stateui_est", "Choose State",
+                                      selectInput("stateui_est", "Select State",
                                                   c("Alabama" = "AL",
                                                     "California" = "CA",
                                                     "Connecticut" = "CT",
@@ -61,13 +61,6 @@ ui <- fluidPage(theme = shinytheme("lumen"),
                                       column(12,
                                              h3("Data Summary"),
                                              tableOutput("ncca10_wc_est_summ"),
-                                             h3("Q-Q Plots"),
-                                             p("The following quantile-quantile plots display",
-                                               span("state data in red", style = "color:red"),
-                                               "and",
-                                               span("ecoregion data in blue", style = "color:blue"),
-                                               "."),
-                                             plotlyOutput("ncca10_wc_est_qq"),
                                              h3("Histograms"),
                                              p("The following histograms display",
                                                span("state data in red", style = "color:red"),
@@ -75,19 +68,26 @@ ui <- fluidPage(theme = shinytheme("lumen"),
                                                span("ecoregion data in blue", style = "color:blue"),
                                                "."),
                                              plotlyOutput("ncca10_wc_est_hist"),
+                                             h3("Q-Q Plots"),
+                                             p("The following quantile-quantile plots display",
+                                               span("state data in red", style = "color:red"),
+                                               "and",
+                                               span("ecoregion data in blue", style = "color:blue"),
+                                               "."),
+                                             plotlyOutput("ncca10_wc_est_qq"),
                                              h3("Box Plot"),
                                              p("The following box plot compares your state data with data from other states in your ecoregion."),
                                              plotlyOutput("ncca10_wc_est_box")))),
                            
-                           tabPanel("NCCA 2015 - Great Lakes",
+                           tabPanel("NCCA 2010 - Great Lakes",
                                     sidebarPanel(
-                                      selectInput("indicatorui_gl", "Choose Indicator",
+                                      selectInput("indicatorui_gl", "Select Indicator",
                                                   c("Water Chemistry" = "wc")),
-                                      selectInput("parameterui_gl", "Choose Parameter",
+                                      selectInput("parameterui_gl", "Select Parameter",
                                                   c("Total Nitrogen" = "NTL",
                                                     "Total Phosphorus" = "PTL",
                                                     "Chloropyll-A" = "CHLA")),
-                                      selectInput("stateui_gl", "Choose State",
+                                      selectInput("stateui_gl", "Select State",
                                                   c("Illinois" = "IL",
                                                     "Indiana" = "IN",
                                                     "Michigan" = "MI",
@@ -101,13 +101,6 @@ ui <- fluidPage(theme = shinytheme("lumen"),
                                       column(12,
                                              h3("Data Summary"),
                                              tableOutput("ncca10_wc_est_gl"),
-                                             h3("Q-Q Plots"),
-                                             p("The following quantile-quantile plots display",
-                                               span("state data in red", style = "color:red"),
-                                               "and",
-                                               span("ecoregion data in blue", style = "color:blue"),
-                                               "."),
-                                             plotlyOutput("ncca10_wc_gl_qq"),
                                              h3("Histograms"),
                                              p("The following histograms display",
                                                span("state data in red", style = "color:red"),
@@ -115,6 +108,13 @@ ui <- fluidPage(theme = shinytheme("lumen"),
                                                span("ecoregion data in blue", style = "color:blue"),
                                                "."),
                                              plotlyOutput("ncca10_wc_gl_hist"),
+                                             h3("Q-Q Plots"),
+                                             p("The following quantile-quantile plots display",
+                                               span("state data in red", style = "color:red"),
+                                               "and",
+                                               span("ecoregion data in blue", style = "color:blue"),
+                                               "."),
+                                             plotlyOutput("ncca10_wc_gl_qq"),
                                              h3("Box Plot"),
                                              p("The following box plot compares your state data with data from other states in your ecoregion."),
                                              plotlyOutput("ncca10_wc_gl_box"))))
@@ -133,6 +133,25 @@ server <- function(input, output) {
     ncca10_wc_est[ncca10_wc_est$PARAMETER==input$parameterui_est&ncca10_wc_est$STATE==input$stateui_est,] %>%
       group_by(STATE, NCCR_REG, PARAMETER, UNITS) %>%
       summarise(Sites=n(), Min=round(min(RESULT),3), Max=round(max(RESULT),3), Median=round(median(RESULT),3), Mean=round(mean(RESULT),3), Var=round(var(RESULT),3), SD=round(sd(RESULT),3))
+  })
+  
+  output$ncca10_wc_est_hist <- renderPlotly({
+    filtered <- 
+      ncca10_wc_est %>%
+      filter(PARAMETER == input$parameterui_est,
+             STATE == input$stateui_est)
+    ecoreg <- unique(filtered$NCCR_REG)
+    units <- unique(filtered$UNITS)
+    p <- ggplot(ncca10_wc_est, aes(x = RESULT)) + 
+      geom_histogram(data = subset(ncca10_wc_est, PARAMETER == input$parameterui_est & STATE == input$stateui_est),
+                     fill="red", alpha = 0.2) +
+      geom_histogram(data = subset(ncca10_wc_est, PARAMETER == input$parameterui_est & NCCR_REG == ecoreg),
+                     fill = "blue", alpha = 0.2) +
+      theme_minimal() + theme(plot.title = element_text(hjust=0.5)) +
+      ggtitle(paste(ncca10_wc_est[ncca10_wc_est$PARAMETER==input$parameterui_est,7])) +
+      xlab(paste('Concentration in',units,sep = ' ')) + ylab('Number of sites')
+    p <- ggplotly(p, tooltip = "count") %>% layout(dragmode = "pan")
+    p
   })
   
   output$ncca10_wc_est_qq <- renderPlotly({
@@ -160,25 +179,6 @@ server <- function(input, output) {
     
   })
   
-  output$ncca10_wc_est_hist <- renderPlotly({
-    filtered <- 
-      ncca10_wc_est %>%
-      filter(PARAMETER == input$parameterui_est,
-             STATE == input$stateui_est)
-    ecoreg <- unique(filtered$NCCR_REG)
-    units <- unique(filtered$UNITS)
-    p <- ggplot(ncca10_wc_est, aes(x = RESULT)) + 
-      geom_histogram(data = subset(ncca10_wc_est, PARAMETER == input$parameterui_est & STATE == input$stateui_est),
-                     fill="red", alpha = 0.2) +
-      geom_histogram(data = subset(ncca10_wc_est, PARAMETER == input$parameterui_est & NCCR_REG == ecoreg),
-                     fill = "blue", alpha = 0.2) +
-      theme_minimal() + theme(plot.title = element_text(hjust=0.5)) +
-      ggtitle(paste(ncca10_wc_est[ncca10_wc_est$PARAMETER==input$parameterui_est,7])) +
-      xlab(paste('Concentration in',units,sep = ' ')) + ylab('Number of sites')
-    p <- ggplotly(p) %>% layout(dragmode = "pan")
-    p
-  })
-  
   output$ncca10_wc_est_box <- renderPlotly({
     filtered <-
       ncca10_wc_est %>%
@@ -194,7 +194,7 @@ server <- function(input, output) {
       theme_minimal() + theme(plot.title = element_text(hjust=0.5)) +
       ggtitle(paste(ncca10_wc_est[ncca10_wc_est$PARAMETER==input$parameterui_est,7])) +
       xlab('State') + ylab(paste('Concentration in',units,sep = ' '))
-    p <- ggplotly(p)  %>% 
+    p <- ggplotly(p, tooltip = "SITE_ID")  %>% 
       layout(xaxis = list(fixedrange = TRUE)) %>%
       layout(yaxis = list(fixedrange = TRUE)) %>%
       config(displayModeBar = F)
@@ -204,6 +204,25 @@ server <- function(input, output) {
     ncca10_wc_gl[ncca10_wc_gl$PARAMETER==input$parameterui_gl&ncca10_wc_gl$STATE==input$stateui_gl,] %>%
       group_by(STATE, PARAMETER, UNITS) %>%
       summarise(Sites=n(), Min=round(min(RESULT),3), Max=round(max(RESULT),3), Median=round(median(RESULT),3), Mean=round(mean(RESULT),3), Var=round(var(RESULT),3), SD=round(sd(RESULT),3))
+  })
+  
+  output$ncca10_wc_gl_hist <- renderPlotly({
+    filtered <- 
+      ncca10_wc_gl %>%
+      filter(PARAMETER == input$parameterui_gl,
+             STATE == input$stateui_gl)
+    ecoreg <- unique(filtered$NCCR_REG)
+    units <- unique(filtered$UNITS)
+    p <- ggplot(ncca10_wc_gl, aes(x = RESULT)) + 
+      geom_histogram(data = subset(ncca10_wc_gl, PARAMETER == input$parameterui_gl & STATE == input$stateui_gl),
+                     fill="red", alpha = 0.2) +
+      geom_histogram(data = subset(ncca10_wc_gl, PARAMETER == input$parameterui_gl & NCCR_REG == ecoreg),
+                     fill = "blue", alpha = 0.2) +
+      theme_minimal() + theme(plot.title = element_text(hjust=0.5)) +
+      ggtitle(paste(ncca10_wc_gl[ncca10_wc_gl$PARAMETER==input$parameterui_gl,7])) +
+      xlab(paste('Concentration in',units,sep = ' ')) + ylab('Number of sites')
+    p <- ggplotly(p, tooltip = "count") %>% layout(dragmode = "pan")
+    p
   })
   
   output$ncca10_wc_gl_qq <- renderPlotly({
@@ -229,25 +248,6 @@ server <- function(input, output) {
     p <- ggplotly(p)
     p
     
-  })
-  
-  output$ncca10_wc_gl_hist <- renderPlotly({
-    filtered <- 
-      ncca10_wc_gl %>%
-      filter(PARAMETER == input$parameterui_gl,
-             STATE == input$stateui_gl)
-    ecoreg <- unique(filtered$NCCR_REG)
-    units <- unique(filtered$UNITS)
-    p <- ggplot(ncca10_wc_gl, aes(x = RESULT)) + 
-      geom_histogram(data = subset(ncca10_wc_gl, PARAMETER == input$parameterui_gl & STATE == input$stateui_gl),
-                     fill="red", alpha = 0.2) +
-      geom_histogram(data = subset(ncca10_wc_gl, PARAMETER == input$parameterui_gl & NCCR_REG == ecoreg),
-                     fill = "blue", alpha = 0.2) +
-      theme_minimal() + theme(plot.title = element_text(hjust=0.5)) +
-      ggtitle(paste(ncca10_wc_gl[ncca10_wc_gl$PARAMETER==input$parameterui_gl,7])) +
-      xlab(paste('Concentration in',units,sep = ' ')) + ylab('Number of sites')
-    p <- ggplotly(p) %>% layout(dragmode = "pan")
-    p
   })
   
   output$ncca10_wc_gl_box <- renderPlotly({
